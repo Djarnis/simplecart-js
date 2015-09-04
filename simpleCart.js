@@ -882,7 +882,7 @@
 			 *******************************************************************/
 
 			simpleCart.extend({
-				checkout: function () {
+				checkout: function (post_data) {
 					if (settings.checkout.type.toLowerCase() === 'custom' && isFunction(settings.checkout.fn)) {
 						settings.checkout.fn.call(simpleCart,settings.checkout);
 					} else if (isFunction(simpleCart.checkout[settings.checkout.type])) {
@@ -892,7 +892,7 @@
 						if( checkoutData.data && checkoutData.action && checkoutData.method ){
 							// if no one has any objections, send the checkout form
 							if( false !== simpleCart.trigger('beforeCheckout', [checkoutData.data]) ){
-								simpleCart.generateAndSendForm( checkoutData );
+								simpleCart.generateAndSendForm( checkoutData, post_data );
 							}
 						}
 						
@@ -903,7 +903,38 @@
 				extendCheckout: function (methods) {
 					return simpleCart.extend(simpleCart.checkout, methods);
 				},
-				generateAndSendForm: function (opts) {
+				generateAndSendForm: function (opts, post_data) {
+					
+					if (typeof post_data !== 'undefined') {
+						if (typeof post_data.ajax !== 'undefined' && post_data.ajax)
+						{
+							post_data.cart = opts;
+							
+							// Ajax this stuff insdead. That means we're building JSON instead
+							$.ajax({
+								url: post_data.url || opts.action,
+								data: JSON.stringify(post_data),
+								method: "POST",
+								contentType: "application/json"
+							}).done(function(data){
+								if (typeof opts.succsss !== 'undefined' || typeof post_data.success !== 'undefined')
+								{
+									var successLocation = post_data.success || opts.success;
+									window.location.replace(successLocation);
+								}
+							}).fail(function(data){
+								if (typeof opts.cancel !== 'undefined' || typeof post_data.failed !== 'undefined')
+								{
+									var failLocation = post_data.failed || opts.cancel;
+									window.location.replace(failLocation);
+								}
+							});
+							
+							// We don't want to do the rest of the stuff!
+							return;
+						}
+					}
+										
 					var form = simpleCart.$create("form");
 					form.attr('style', 'display:none;');
 					form.attr('action', opts.action);
@@ -913,6 +944,15 @@
 							simpleCart.$create("input").attr("type","hidden").attr("name",name).val(val)
 						);
 					});
+					
+					if (typeof post_data !== 'undefined') {
+						simpleCart.each(post_data, function (val, x, name) {
+							form.append(
+								simpleCart.$create("input").attr("type","hidden").attr("name",name).val(val)
+							);
+						});
+					}
+					
 					simpleCart.$("body").append(form);
 					form.el.submit();
 					form.remove();
