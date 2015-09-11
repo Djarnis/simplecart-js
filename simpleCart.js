@@ -892,7 +892,7 @@
 						if( checkoutData.data && checkoutData.action && checkoutData.method ){
 							// if no one has any objections, send the checkout form
 							if( false !== simpleCart.trigger('beforeCheckout', [checkoutData.data]) ){
-								simpleCart.generateAndSendForm( checkoutData, post_data );
+								return simpleCart.generateAndSendForm( checkoutData, post_data );
 							}
 						}
 						
@@ -921,7 +921,8 @@
 								{
 									var successLocation = post_data.success || opts.success;
 									window.location.replace(successLocation);
-								}
+								} else
+									return data;
 							}).fail(function(data){
 								if (typeof opts.cancel !== 'undefined' || typeof post_data.failed !== 'undefined')
 								{
